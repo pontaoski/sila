@@ -49,6 +49,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.createProductStmt, err = db.PrepareContext(ctx, createProduct); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateProduct: %w", err)
 	}
+	if q.createUserStmt, err = db.PrepareContext(ctx, createUser); err != nil {
+		return nil, fmt.Errorf("error preparing query CreateUser: %w", err)
+	}
 	if q.deleteBugStmt, err = db.PrepareContext(ctx, deleteBug); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteBug: %w", err)
 	}
@@ -78,6 +81,15 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.listBugsStmt, err = db.PrepareContext(ctx, listBugs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListBugs: %w", err)
+	}
+	if q.listComponentsStmt, err = db.PrepareContext(ctx, listComponents); err != nil {
+		return nil, fmt.Errorf("error preparing query ListComponents: %w", err)
+	}
+	if q.listProductsStmt, err = db.PrepareContext(ctx, listProducts); err != nil {
+		return nil, fmt.Errorf("error preparing query ListProducts: %w", err)
+	}
+	if q.listUsersStmt, err = db.PrepareContext(ctx, listUsers); err != nil {
+		return nil, fmt.Errorf("error preparing query ListUsers: %w", err)
 	}
 	if q.redactCommentStmt, err = db.PrepareContext(ctx, redactComment); err != nil {
 		return nil, fmt.Errorf("error preparing query RedactComment: %w", err)
@@ -144,6 +156,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing createProductStmt: %w", cerr)
 		}
 	}
+	if q.createUserStmt != nil {
+		if cerr := q.createUserStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createUserStmt: %w", cerr)
+		}
+	}
 	if q.deleteBugStmt != nil {
 		if cerr := q.deleteBugStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteBugStmt: %w", cerr)
@@ -192,6 +209,21 @@ func (q *Queries) Close() error {
 	if q.listBugsStmt != nil {
 		if cerr := q.listBugsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listBugsStmt: %w", cerr)
+		}
+	}
+	if q.listComponentsStmt != nil {
+		if cerr := q.listComponentsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listComponentsStmt: %w", cerr)
+		}
+	}
+	if q.listProductsStmt != nil {
+		if cerr := q.listProductsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listProductsStmt: %w", cerr)
+		}
+	}
+	if q.listUsersStmt != nil {
+		if cerr := q.listUsersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listUsersStmt: %w", cerr)
 		}
 	}
 	if q.redactCommentStmt != nil {
@@ -267,6 +299,7 @@ type Queries struct {
 	createBugStmt               *sql.Stmt
 	createComponentStmt         *sql.Stmt
 	createProductStmt           *sql.Stmt
+	createUserStmt              *sql.Stmt
 	deleteBugStmt               *sql.Stmt
 	deleteComponentStmt         *sql.Stmt
 	deleteProductStmt           *sql.Stmt
@@ -277,6 +310,9 @@ type Queries struct {
 	editSeverityStmt            *sql.Stmt
 	editStatusStmt              *sql.Stmt
 	listBugsStmt                *sql.Stmt
+	listComponentsStmt          *sql.Stmt
+	listProductsStmt            *sql.Stmt
+	listUsersStmt               *sql.Stmt
 	redactCommentStmt           *sql.Stmt
 	relocateBugStmt             *sql.Stmt
 	removeDependencyStmt        *sql.Stmt
@@ -297,6 +333,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		createBugStmt:               q.createBugStmt,
 		createComponentStmt:         q.createComponentStmt,
 		createProductStmt:           q.createProductStmt,
+		createUserStmt:              q.createUserStmt,
 		deleteBugStmt:               q.deleteBugStmt,
 		deleteComponentStmt:         q.deleteComponentStmt,
 		deleteProductStmt:           q.deleteProductStmt,
@@ -307,6 +344,9 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		editSeverityStmt:            q.editSeverityStmt,
 		editStatusStmt:              q.editStatusStmt,
 		listBugsStmt:                q.listBugsStmt,
+		listComponentsStmt:          q.listComponentsStmt,
+		listProductsStmt:            q.listProductsStmt,
+		listUsersStmt:               q.listUsersStmt,
 		redactCommentStmt:           q.redactCommentStmt,
 		relocateBugStmt:             q.relocateBugStmt,
 		removeDependencyStmt:        q.removeDependencyStmt,

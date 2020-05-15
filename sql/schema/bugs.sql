@@ -1,3 +1,13 @@
+CREATE TYPE severity AS ENUM (
+    'Wishlist', 'Minor', 'Normal', 'Grave', 'Major', 'Critical', 'Crash',
+    'Task',
+    'MinorSecurityIssue', 'MediumSecurityIssue', 'MajorSecurityIssue', 'CriticalSecurityIssue'
+);
+
+CREATE TYPE status AS ENUM (
+    'Reported', 'Confirmed', 'Assigned', 'Resolved', 'NeedInfo'
+);
+
 CREATE TABLE Products (
     ID BIGSERIAL NOT NULL PRIMARY KEY,
     Name TEXT,
@@ -51,14 +61,4 @@ CREATE TABLE Bug_Dependencies (
     Depends_On  BIGSERIAL NOT NULL,
     FOREIGN KEY (Required_By) REFERENCES Bugs(ID),
     FOREIGN KEY (Depends_On) REFERENCES Bugs(ID)
-);
-
-CREATE TYPE severity AS ENUM (
-    'Wishlist', 'Minor', 'Normal', 'Grave', 'Major', 'Critical', 'Crash',
-    'Task',
-    'MinorSecurityIssue', 'MediumSecurityIssue', 'MajorSecurityIssue', 'CriticalSecurityIssue'
-);
-
-CREATE TYPE status AS ENUM (
-    'Reported', 'Confirmed', 'Assigned', 'Resolved', 'NeedInfo'
 );

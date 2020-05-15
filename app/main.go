@@ -3,6 +3,7 @@ package app
 import (
 	"database/sql"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 
@@ -20,6 +21,19 @@ const (
 	USER   = "postgres"
 	DBNAME = "sila"
 )
+
+func Complain(out string) {
+	println(out)
+	os.Exit(1)
+}
+
+func ParseInt(in string) int64 {
+	out, err := strconv.ParseInt(in, 10, 64)
+	if err != nil {
+		Complain(err.Error())
+	}
+	return out
+}
 
 func Main() {
 	info := fmt.Sprintf(
@@ -46,133 +60,82 @@ func Main() {
 		return sql.NullString{String: in, Valid: true}
 	}
 
+	sbool := func(in bool) sql.NullBool {
+		return sql.NullBool{Bool: in, Valid: true}
+	}
+
 	silaDB.Prepare(ctx, conn)
 
 	app := cli.App{
 		Commands: []*cli.Command{
 			{
-				Name: "new",
-				Action: func(c *cli.Context) error {
-					bug, err := db.CreateBug(ctx, silaDB.CreateBugParams{
-						Title:          str(c.Args().Get(0)),
-						BugDescription: str(c.Args().Get(1)),
-					})
-					if err != nil {
-						repr.Println(err)
-					}
-					repr.Println(bug)
-					return nil
-				},
-			},
-			{
-				Name: "list",
-				Action: func(c *cli.Context) error {
-					bugs, err := db.ListBugs(ctx, silaDB.ListBugsParams{
-						Limit:  0,
-						Offset: 50,
-					})
-					if err != nil {
-						repr.Println(err)
-					}
-					repr.Println(bugs)
-					return nil
-				},
-			},
-			{
-				Name: "delete",
-				Action: func(c *cli.Context) error {
-					parsed, err := strconv.ParseInt(c.Args().First(), 10, 64)
-					if err != nil {
-						repr.Println(err)
-						return nil
-					}
-					err = db.ClearDependenciesForBug(ctx, parsed)
-					if err != nil {
-						repr.Println(err)
-						return nil
-					}
-					err = db.ClearDependenciesOnBug(ctx, parsed)
-					if err != nil {
-						repr.Println(err)
-						return nil
-					}
-					err = db.DeleteBug(ctx, parsed)
-					if err != nil {
-						repr.Println(err)
-						return nil
-					}
-					return nil
-				},
-			},
-			{
-				Name: "deps",
+				Name: "users",
 				Subcommands: []*cli.Command{
-					{
-						Name: "of",
-						Action: func(c *cli.Context) error {
-							parsed, err := strconv.ParseInt(c.Args().First(), 10, 64)
-							if err != nil {
-								repr.Println(err)
-								return nil
-							}
-							bugs, err := db.Requires(ctx, parsed)
-							if err != nil {
-								repr.Println(err)
-							}
-							repr.Println(bugs)
-							return nil
-						},
-					},
-					{
-						Name: "on",
-						Action: func(c *cli.Context) error {
-							parsed, err := strconv.ParseInt(c.Args().First(), 10, 64)
-							if err != nil {
-								repr.Println(err)
-								return nil
-							}
-							bugs, err := db.WhatRequires(ctx, parsed)
-							if err != nil {
-								repr.Println(err)
-							}
-							repr.Println(bugs)
-							return nil
-						},
-					},
-					{
-						Name: "remove",
-						Action: func(c *cli.Context) error {
-							parsed1, err := strconv.ParseInt(c.Args().Get(0), 10, 64)
-							parsed2, err := strconv.ParseInt(c.Args().Get(1), 10, 64)
-							if err != nil {
-								repr.Println(err)
-								return nil
-							}
-							err = db.RemoveDependency(ctx, silaDB.RemoveDependencyParams{
-								RequiredBy: parsed1,
-								DependsOn:  parsed2,
-							})
-							if err != nil {
-								repr.Println(err)
-							}
-							return nil
-						},
-					},
 					{
 						Name: "add",
 						Action: func(c *cli.Context) error {
-							parsed1, err := strconv.ParseInt(c.Args().Get(0), 10, 64)
-							parsed2, err := strconv.ParseInt(c.Args().Get(1), 10, 64)
-							if err != nil {
-								repr.Println(err)
-								return nil
+							if c.NArg() < 2 {
+								Complain("Please provide an email and a full name")
 							}
-							err = db.AddDependency(ctx, silaDB.AddDependencyParams{
-								RequiredBy: parsed1,
-								DependsOn:  parsed2,
+							user, err := db.CreateUser(ctx, silaDB.CreateUserParams{
+								Email:    str(c.Args().Get(0)),
+								Fullname: str(c.Args().Get(1)),
 							})
 							if err != nil {
-								repr.Println(err)
+								Complain(err.Error())
+							}
+							fmt.Printf("User %d created:\n\tReal Name: %s\n\tEmail: %s\n", user.ID, user.Fullname.String, user.Email.String)
+							return nil
+						},
+					},
+					{
+						Name: "list",
+						Action: func(c *cli.Context) error {
+							users, err := db.ListUsers(ctx, silaDB.ListUsersParams{
+								Limit:  math.MaxInt32,
+								Offset: 0,
+							})
+							if err != nil {
+								Complain(err.Error())
+							}
+							for _, user := range users {
+								fmt.Printf("User %d:\n\tReal Name: %s\n\tEmail: %s\n", user.ID, user.Fullname.String, user.Email.String)
+							}
+							return nil
+						},
+					},
+				},
+			},
+			{
+				Name: "products",
+				Subcommands: []*cli.Command{
+					{
+						Name: "add",
+						Action: func(c *cli.Context) error {
+							product, err := db.CreateProduct(ctx, silaDB.CreateProductParams{
+								Name:               str(c.Args().Get(0)),
+								ProductDescription: str(c.Args().Get(1)),
+								Active:             sbool(true),
+							})
+							if err != nil {
+								Complain(err.Error())
+							}
+							fmt.Printf("Product %d created:\n\tName: %s\n\tDescription: %s\n", product.ID, product.Name.String, product.ProductDescription.String)
+							return nil
+						},
+					},
+					{
+						Name: "list",
+						Action: func(c *cli.Context) error {
+							products, err := db.ListProducts(ctx, silaDB.ListProductsParams{
+								Limit:  math.MaxInt32,
+								Offset: 0,
+							})
+							if err != nil {
+								Complain(err.Error())
+							}
+							for _, product := range products {
+								fmt.Printf("Product %n (%d):\t%s", product.Name.String, product.ID, product.ProductDescription.String)
 							}
 							return nil
 						},

@@ -16,6 +16,11 @@ UPDATE Components
 DELETE FROM Components
     WHERE ID=$1;
 
+-- name: ListComponents :many
+SELECT * FROM Components
+    ORDER BY ID
+    LIMIT $1 OFFSET $2;
+
 -- name: CountComponentBugs :many
 SELECT COUNT(*) FROM Bugs
     WHERE Component_ID=$1;

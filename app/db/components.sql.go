@@ -90,3 +90,42 @@ func (q *Queries) EditComponent(ctx context.Context, arg EditComponentParams) er
 	_, err := q.exec(ctx, q.editComponentStmt, editComponent, arg.ID, arg.Name, arg.ComponentDescription)
 	return err
 }
+
+const listComponents = `-- name: ListComponents :many
+SELECT id, name, component_description, product_id FROM Components
+    ORDER BY ID
+    LIMIT $1 OFFSET $2
+`
+
+type ListComponentsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) ListComponents(ctx context.Context, arg ListComponentsParams) ([]Component, error) {
+	rows, err := q.query(ctx, q.listComponentsStmt, listComponents, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Component
+	for rows.Next() {
+		var i Component
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.ComponentDescription,
+			&i.ProductID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
